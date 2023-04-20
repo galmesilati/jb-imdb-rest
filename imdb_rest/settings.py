@@ -38,7 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'django_filters',
-    'imdb_app.apps.ImdbAppConfig',
+    'rest_framework_simplejwt',
+    'imdb_app.apps.ImdbAppConfig'
 
 ]
 
@@ -47,6 +48,7 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
+    # middleware : will insert the user into the request
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -131,5 +133,24 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 3
+    'django_filters.rest_framework.DjangoFilterBackend'
+    'PAGE_SIZE': 3,
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.BasicAuthentication',
+
+        # This means that clients will need to include Authorization header,
+        # in their HTTP requests that contains a base64-encoded string of the form,
+        # "username:password". If the credentials are valid, the client will be granted access to the API.
+
+        # 'rest_framework.authentication.SessionAuthentication',
+
+        # This means that clients will need to have cookies enabled in their web browser to authenticate,
+        # with the API, and the server will create and manage a session for each authenticated client.
+        # Once a client has been authenticated using this method, subsequent requests will include,
+        # session ID that the server can use to identify and authenticate the client.
+        # It is problematic to use cookies because it only works if the application is running on a browser.
+
+
+        'rest_framework_simplejwt.authentication.JWTAuthentication'
+    ]
 }

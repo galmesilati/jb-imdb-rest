@@ -5,15 +5,16 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, GenericViewSet
 
-from imdb_app.models import Movie, Actor
+from imdb_app.models import Movie, Actor, Oscar
 from imdb_app.serializers import MovieSerializer, ActorSerializer, DetailedMovieSerializer, CreateMovieSerializer, \
-    CastForMovieSerializer
+    CastForMovieSerializer, OscarSerializer
+
 
 class MovieFilterSet(FilterSet):
-
     name = django_filters.CharFilter(field_name='name', lookup_expr='iexact')
     duration_from = django_filters.NumberFilter('duration_in_min', lookup_expr='gte')
     duration_to = django_filters.NumberFilter('duration_in_min', lookup_expr='lte')
+
     # description = django_filters.CharFilter(field_name='name', lookup_expr='icontains')
 
     class Meta:
@@ -59,6 +60,47 @@ class ActorViewSet(ModelViewSet):
     queryset = Actor.objects.all()
 
 
+class OscarViewSet(ModelViewSet):
+    serializer_class = OscarSerializer
+    queryset = Oscar.objects.all()
 
+    def get_queryset(self):
+        queryset = Oscar.objects.all()
+        year = self.request.query_params.get('year')
+        from_year = self.request.query_params.get('from_year')
+        to_year = self.request.query_params.get('to_year')
+        nomination = self.request.query_params.get('nomination')
 
+        if year:
+            queryset = queryset.filter(year__iexact='year').values()
+        if from_year:
+            queryset = queryset.filter(year__gte__iexact='from_year').values()
+        if to_year:
+            queryset = queryset.filter(year__lte__iexact='to_year').values()
+        if nomination:
+            queryset = queryset.filter(nomination__iexact='nomination').values()
+
+        return queryset
+
+    def create_new_oscar(self, request):
+        year = request.data.get('year')
+        movie_id = request.data.get('movie_id')
+        actor_id = request.data.get('actor_id')
+        nomination = request.data.get('nomination')
+        try:
+            movie = Movie.objects.get(id=movie_id)
+        except Movie.DoesNotExist:
+            return Response({'error': f'Movie with id {movie_id} does not exist'})
+
+        if actor_id:
+            try:
+                actor = Actor.objects.get(id=actor_id)
+            except Actor.DoesNotExist:
+                return Response({'error': f'Actor with id {actor_id} does not exist'})
+
+        oscar = Oscar(year=year, movie_id=movie_id, actor_id=actor_id, nomination=nomination)
+        oscar.save()
+        serializer = OscarSerializer
+
+        return Response(serializer.data)
 

@@ -1,10 +1,12 @@
+from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import transaction
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
-from imdb_app.models import Movie, Actor, MovieActor, Rating
+from imdb_app.models import Movie, Actor, MovieActor, Rating, Oscar
 
 
 # class MovieSerializer(serializers.Serializer):
@@ -34,7 +36,8 @@ class ActorSerializer(serializers.ModelSerializer):
         fields = '__all__'
         extra_kwargs = {
             'birth_year': {
-                'required': False,  # עבור שדות אופציונליים
+                # for optional field
+                'required': False,
                 'validators': [MinValueValidator(5)]
             }
         }
@@ -60,26 +63,13 @@ class RatingMovieSerializers(serializers.ModelSerializer):
         exclude = ['id', 'movie', 'rating_date']
 
 
-# class CreateMovieSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = Movie
-#         fields = ['name', 'description', 'duration_in_min', 'release_year']
-#         extra_kwargs = {
-#             'id': {'read_only': True}
-#         }
-#
-#     def validate(self, attrs):
-#         if attrs['release_year'] <= 1970 and attrs['duration_in_min'] >= 60:  # בדיקה של שני תנאים שסרט לא יהיה ישן מדי ולא ארוך
-#             raise ValidationError('Old movies supposed to be short')  # חייב להיות שגיאה מהסוג הזה
-#         return attrs
-
 
 class CreateActor(serializers.ModelSerializer):
     class Meta:
         model = Actor
         fields = ['id', 'name', 'birth_year']
         extra_kwargs = {
-            'id': {'read_only': True}  # read_only - True לא ידרוש לקבל מספר שחקן בעת יצירת שחקו חדש ברגע שהוא
+            'id': {'read_only': True}
         }
 
 
@@ -131,3 +121,45 @@ class CreateMovieSerializer(serializers.ModelSerializer):
         if attrs['release_year'] <= 1920 and attrs['duration_in_min'] >= 60:
             raise ValidationError('Old movies supposed to me short')
         return attrs
+
+
+class OscarSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Oscar
+        fields = '__all__'
+        extra_kwargs = {
+            'actor': {
+                'required': False,  # for optional value
+                'validators': None,
+            },
+            'director': {'required': False}
+        }
+
+
+class SignupSerializer(serializers.ModelSerializer):
+
+    password = serializers.CharField(max_length=128, validators=validate_password, write_only=True)
+
+    class Meta:
+        model = User
+        fields = ['email', 'first_name', 'last_name', 'password']
+        extra_kwargs = {
+            'email': {'required': True},
+            'username': {'read_only': True}
+        }
+        # validate unique movie name
+        validators = [
+            UniqueTogetherValidator(User.objects.all(), ['email'])
+        ]
+
+    def create(self, validated_data):
+        user = User.objects.create(username=validated_data['email'],
+                                   email=validated_data['email'],
+                                   first_name=validated_data.get(['first_name', '']),
+                                   last_name=validated_data.get(['last_name', '']))
+
+        # set_password - מריץ את ההאש מחזיר את הסטרינג הארוך ובודק את תקינות הססמא
+        user.set_password(validated_data['password'])
+        user.save()
+        return user
+

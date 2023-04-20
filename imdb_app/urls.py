@@ -18,7 +18,10 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
 from imdb_app import views
-from imdb_app.view_set import MovieViewSet, ActorViewSet
+from imdb_app.view_set import MovieViewSet, ActorViewSet, OscarViewSet
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+
+from imdb_app.views import signup
 
 # http://127.0.0.1:8000/api/imdb/movies
 
@@ -31,7 +34,7 @@ router = DefaultRouter()
 # לאן אני רוצה לנתב, ומפרק את זה לכמות היישויות בדאטהבייס
 router.register('movies', MovieViewSet)
 router.register('actors', ActorViewSet)
-
+router.register('oscar', OscarViewSet)
 print(router.urls)
 
 #movies/ POST, GET(list)
@@ -44,6 +47,10 @@ urlpatterns = [
 
     # path('actors', views.get_actors),
     # path('actors/<int:actor_id>', views.get_actor),
+
+    path('auth/login', TokenObtainPairView.as_view()),
+    path('auth/refresh', TokenRefreshView.as_view()),
+    path('auth/signup', signup),
 
     path('movie_actors/<int:movie_id>/<int:actor_id', views.remove_actor_from_movie),
     path('movies/<int:movie_id>/ratings', views.get_movie_ratings),
